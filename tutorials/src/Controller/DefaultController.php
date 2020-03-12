@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Entity\Video;
 use App\Services\GiftsService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -14,12 +15,197 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class DefaultController extends AbstractController
 {
+    
+    /**
+     * @Route("/test-many-to-many", name="test-many-to-many")
+     */
+    public function testManyToMany()
+    {
+        $entityManager = $this->getDoctrine()->getManager();
+        
+        // for ($i = 0; $i < 5; $i++) {
+        //     $user = new User();
+        //     $user->setName('RObert - '. $i);
+        //     $entityManager->persist($user);
+        // }
+        // $entityManager->flush();
+        // dump($user);
+        
+        $users = $entityManager->getRepository(User::class)->findAll();
+        
+        // $users[0]->addFollowed($users[1]);
+        // $users[0]->addFollowed($users[2]);
+        // $users[0]->addFollowed($users[3]);
+        // $users[0]->addFollowed($users[4]);
+        // $users[0]->addFollowing($users[4]);
+        // $entityManager->flush();
+        dump($users[4]->getFollowing()->count());
+        
+        return $this->render('default/index.html.twig', [
+            'controller_name' => 'DefaultController'
+        ]);
+    }
+    /**
+     * @Route("/test-many-to-one", name="test-many-to-one")
+     */
+    public function testManyToOne()
+    {
+        $entityManager = $this->getDoctrine()->getManager();
+        $user = $entityManager->getRepository(User::class)->find(2);
+        
+        $videos = $user->getVideos();
+        
+        $user->removeVideo($videos[0]);
+        
+        $entityManager->flush();        
+        dump($user);
+        
+        return $this->render('default/index.html.twig', [
+            'controller_name' => 'DefaultController'
+        ]);
+    }
+    
+    /**
+     * @Route("/add-video-to-user", name="add-video-to-user")
+     */
+    public function addVideoToUser()
+    {
+        $entityManager = $this->getDoctrine()->getManager();
+        
+        $user = new User();
+        $user->setName('Vídeo Guy');
+        
+        for ($i = 1; $i <= 5; $i++) {
+            $video = new Video();
+            $video->setTitle('Video Title - '. $i);
+            $user->addVideo($video);
+            $entityManager->persist($video);
+        }
+        
+        $entityManager->persist($user);
+        $entityManager->flush();
+        
+        dump($user);
+        
+        return $this->render('default/index.html.twig', [
+            'controller_name' => 'DefaultController'
+        ]);
+    }
+
+    /**
+     * @Route("/user/{id}", name="user")
+     */
+    public function user(Request $request, User $user)
+    {
+        dump($user);
+        return $this->render('default/index.html.twig', [
+            'controller_name' => 'DefaultController'
+        ]);
+    }
+    
+    /**
+     * @Route("/create", name="create")
+     */
+    public function create(Request $request)
+    {
+        $entityManager = $this->getDoctrine()->getManager();
+        
+        $user = new User;
+        $user->setName('Robert');
+        $entityManager->persist($user);
+        $entityManager->flush();
+        
+        dump('A new user was saved with the id of ' . $user->getId());
+        
+        return $this->render('default/index.html.twig', [
+            'controller_name' => 'DefaultController'
+        ]);
+    }
+    
+    /**
+     * @Route("/read", name="read")
+     */
+    public function read(Request $request) 
+    {
+        $repository = $this->getDoctrine()->getRepository(User::class);
+        $user = $repository->findOneBy(['name' => 'name - 1'], ['id' => 'ASC']);
+        $user = $repository->findAll();
+        $user = $repository->findBy(['name' => 'name - 1'], ['id' => 'ASC']);
+        dump($user);
+        return $this->render('default/index.html.twig', [
+            'controller_name' => 'DefaultController'
+        ]);
+    }
+    
+    /**
+     * @Route("/update", name="update")
+     */
+    public function update(Request $request)
+    {
+        $entityManager = $this->getDoctrine()->getManager();
+        
+        $id = 21;
+        $user = $entityManager->getRepository(User::class)->find($id);
+        
+        if (!$user) {
+            throw $this->createNotFoundException('No user found for id '. $id);
+        }
+        
+        $user->setName('New user name!');
+        $entityManager->flush();
+        
+        dump($user);
+        return $this->render('default/index.html.twig', [
+            'controller_name' => 'DefaultController'
+        ]);
+    }
+    
+    /**
+     * @Route("/delete", name="delete")
+     */
+    public function delete(Request $request)
+    {
+        $entityManager = $this->getDoctrine()->getManager();
+        
+        $id = 21;
+        $user = $entityManager->getRepository(User::class)->find($id);
+        
+        $entityManager->remove($user);
+        $entityManager->flush();
+        
+        dump($user);
+        return $this->render('default/index.html.twig', [
+            'controller_name' => 'DefaultController'
+        ]);
+    }
+    
+    /**
+     * @Route("/raw", name="raw")
+     */
+    public function rawQuery(Request $request)
+    {
+        $entityManager = $this->getDoctrine()->getManager();
+        
+        $conn = $entityManager->getConnection();
+        $sql = '
+        SELECT * FROM user u
+        WHERE u.id > :id';
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['id' => 1]);
+        
+        dump($stmt->fetchAll());
+        
+        return $this->render('default/index.html.twig', [
+            'controller_name' => 'DefaultController'
+        ]);
+    }
+    
     /**
      * @Route("/default", name="default")
      */
     public function index(GiftsService $gifts, Request $request, SessionInterface $session)
     {
-        $users = $this->getDoctrine()->getRepository(User::class)->findAll();
+        // $users = $this->getDoctrine()->getRepository(User::class)->findAll();
         
         // Flash
         $this->addFlash("notice", "Your changes were saved!");
@@ -40,7 +226,7 @@ class DefaultController extends AbstractController
         
         return $this->render('default/index.html.twig', [
             'controller_name' => 'DefaultController',
-            'users' => $users,
+            // 'users' => $users,
             'random_gift' => $gifts->gifts
         ]);
     }
@@ -110,7 +296,7 @@ class DefaultController extends AbstractController
     }
     
     /**
-     * @Route("/url-to-redirect/{param?}, name="route_to_redirect")
+     * @Route("/url-to-redirect/{param?}", name="route_to_redirect")
      */
     public function methodToRedirect()
     {
@@ -134,6 +320,15 @@ class DefaultController extends AbstractController
     public function methodToForwardTo($param)
     {
         exit('Test controller forwarding - '. $param);
+    }
+    
+    
+    public function mostPopularPosts($number = 3)
+    {
+        $posts = ['post 1', 'post 2', 'post 3', 'post 4'];
+        return $this->render('default/most_popular_posts.html.twig', [
+            'posts' => $posts
+        ]);
     }
     
 }

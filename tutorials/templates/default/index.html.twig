@@ -1,5 +1,7 @@
 {% extends 'base.html.twig' %}
 
+{% set users = [{name: 'Jo1hn'}, {name: 'Susan'}, {name: 'Robert'}] %}
+{% set string = 'Hello darkness\n Its so nice to see you again\n Im back bitch' %}
 {% block title %}Hello DefaultController!{% endblock %}
 
 {% block body %}
@@ -17,18 +19,55 @@
         <li>Your template at <code><a href="{{ '/home/vinicius/workspace/symfony-course-2/templates/default/index.html.twig'|file_link(0) }}">templates/default/index.html.twig</a></code></li>
     </ul>
     
+    {# {{ app.user }}
+    {{ app.request.get('param') }}
+    {{ app.environment }}
+    {{ dump(app.session) }} #}
+    
     <ul>
         {% for user in users %}
-            <li>{{ user.name }}</li>
+            {% if user.name == 'Susan' %}
+                <li>{{ user.name }}</li>
+            {% else %}
+                <li>No users were found</li>
+            {% endif %}
         {% endfor %}
     </ul>
     
-    {% for label, messages in app.flashes %}
+    {# {{ path('default') }}
+    {{ url("default") }}
+    {{ asset('images/logo.png') }} #}
+    
+    {# <p>Google: {{ ga_code }}</p> #}
+    
+    {# {{ include('includes/subview.html.twig', {'users': users}) }} #}
+    
+    {# {% for i in 1..10 %}
+        <div class="{{ cycle(['even', 'odd'], i) }}"> {{ i }}</div>
+    {% endfor %} #}
+    
+    {{ render(controller(
+        'App\\Controller\\DefaultController::mostPopularPosts',
+        { 'number': 2}
+    ))}}
+    
+    {# {% for label, messages in app.flashes %}
         {% for message in messages %}
             <div class="flash-{{ label }}">
                 {{ message }}
             </div>
         {% endfor %}
-    {% endfor %}
+    {% endfor %} #}
 </div>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="{{ asset('build/js/custom.js') }}"></script>
+    <script>
+        {# $(document).ready(function() {
+            var string = "{{ string|escape('js') }}"
+            alert(string); 
+        }); #}
+    </script>
+    {{ parent() }}
 {% endblock %}
