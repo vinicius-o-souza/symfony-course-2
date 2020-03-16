@@ -8,6 +8,7 @@ use App\Entity\Music;
 use App\Entity\Pdf;
 use App\Entity\User;
 use App\Services\MyService;
+use App\Services\ServiceInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -23,6 +24,33 @@ class Default2Controller extends AbstractController
     public function __construct(EntityManagerInterface $entityManager)
     {
         $this->entityManager = $entityManager;        
+    }
+    
+    /**
+     * @Route("/services-interface", name="services-interface")
+     */
+    public function servicesInterface(ServiceInterface $service, ContainerInterface $container)
+    {
+        // dump($service);
+        // $myService->someAction();
+        
+        return $this->render('default2/index.html.twig', [
+            'controller_name' => 'Default2Controller',
+        ]);
+    }
+    
+    /**
+     * @Route("/tag", name="tag")
+     */
+    public function tagexample()
+    {
+        $user = $this->entityManager->getRepository(User::class)->find(1);
+        $user->setName('Rob');
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+        return $this->render('default2/index.html.twig', [
+            'controller_name' => 'Default2Controller',
+        ]);
     }
     
     /**
@@ -54,9 +82,7 @@ class Default2Controller extends AbstractController
         $author = $repository->findByIdWithPdf(1);
         
         foreach ($author->getFiles() as $file) {
-
-                dump($file);
-            
+            dump($file);
         }
         
         return $this->render('default2/index.html.twig', [

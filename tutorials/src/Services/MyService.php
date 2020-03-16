@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-class MyService 
+class MyService implements ServiceInterface
 {
     
     use OptionalServiceTrait;
