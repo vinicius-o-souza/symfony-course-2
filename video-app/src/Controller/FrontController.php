@@ -3,9 +3,14 @@
 namespace App\Controller;
 
 use App\Entity\Category;
+use App\Entity\Comment;
+use App\Entity\Video;
+use App\Repository\VideoRepository;
 use App\Utils\CategoryTreeFrontPage;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class FrontController extends AbstractController
 {
@@ -18,30 +23,51 @@ class FrontController extends AbstractController
     }
     
     /**
-     * @Route("/video-list/category/{categoryname},{id}", name="video_list")
+     * @Route("/video-list/category/{categoryname},{id}/{page}", defaults={"page": "1"} , name="video_list")
      */
-    public function videoList($id, CategoryTreeFrontPage $categories)
+    public function videoList($id, int $page, CategoryTreeFrontPage $categories, Request $request)
     {
         $categories->getCategoryListAndParent($id);
+        dump($categories);
+        
+        $ids = $categories->getChildIds($id);
+        array_push($ids, $id);
+        
+        $videos = $this->getDoctrine()->getRepository(Video::class)->findByChildIds($ids, $page, $request->get('sortby'));
+        
         return $this->render('front/video_list.html.twig', [
-            'subcategories' => $categories
+            'subcategories' => $categories,
+            'videos' => $videos
         ]);
     }
     
     /**
-     * @Route("/video-details", name="video_details")
+     * @Route("/video-details/{video}", name="video_details")
      */
-    public function videoDetails()
-    {
-        return $this->render('front/video_details.html.twig');
+    public function videoDetails(VideoRepository $videoRepository, Video $video)
+    {   
+        return $this->render('front/video_details.html.twig', [
+            'video' => $videoRepository->videoDetails($video->getId())
+        ]);
     }
     
     /**
-     * @Route("/search-results", name="search_results", methods={ "POST" })
+     * @Route("/search-results/{page}", defaults={"page": "1"}, methods={"GET"}, name="search_results")
      */
-    public function searchResults()
+    public function searchResults($page, Request $request)
     {
-        return $this->render('front/search_results.html.twig');
+        $videos = null;
+        $query = null;
+        if ($query = $request->get('query')) {
+            $videos = $this->getDoctrine()->getRepository(Video::class)
+                ->findByTitle($query, $page, $request->get('sortby'));
+
+            if (!$videos->getItems()) $videos = null;
+        }
+        return $this->render('front/search_results.html.twig', [
+            'videos' => $videos,
+            'query' => $query
+        ]);
     }
     
     /**
@@ -52,21 +78,13 @@ class FrontController extends AbstractController
         return $this->render('front/pricing.html.twig');
     }
     
-    /**
-     * @Route("/register", name="register")
-     */
-    public function register()
-    {
-        return $this->render('front/register.html.twig');
-    }
-    
-    /**
-     * @Route("/login", name="login")
-     */
-    public function login()
-    {
-        return $this->render('front/login.html.twig');
-    }
+    // /**
+    //  * @Route("/register", name="register")
+    //  */
+    // public function register()
+    // {
+    //     return $this->render('front/register.html.twig');
+    // }
     
     /**
      * @Route("/payment", name="payment")
@@ -74,6 +92,26 @@ class FrontController extends AbstractController
     public function payment()
     {
         return $this->render('front/payment.html.twig');
+    }
+    
+    /**
+     * @Route("/new-comment/{video}", methods={"POST"}, name="new_comment")
+     */
+    public function newComment(Video $video, Request $request)
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
+        if (!empty(trim($request->request->get('comment')))) {
+            $comment = new Comment();
+            $comment->setContent($request->request->get('comment'));
+            $comment->setUser($this->getUser());
+            $comment->setVideo($video);
+            
+            $entityManager = $this->getDoctrine()->getManager();
+            $entityManager->persist($comment);
+            $entityManager->flush();
+        }
+        
+        return $this->redirectToRoute('video_details', ['video' => $video->getId()]);
     }
     
     public function mainCategories()
