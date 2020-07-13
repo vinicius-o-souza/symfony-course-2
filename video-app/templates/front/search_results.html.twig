@@ -1,6 +1,18 @@
 {% extends "base.html.twig" %}
 
 {% block main %}
+    {% block stylesheets %}
+        {{ parent() }}
+        {% if app.user %}
+            <link rel="stylesheet" href="{{ asset('assets/css/likes.css') }}">
+        {% endif %}
+    {% endblock %}
+    {% block javascripts %}
+      {{ parent() }}
+      {% if app.user %}
+        <script src="{{ asset('assets/js/likes.js') }}"></script>
+      {% endif %}
+    {% endblock %}
     <section class="jumbotron text-center">
         <div class="container">
             {% if videos %}

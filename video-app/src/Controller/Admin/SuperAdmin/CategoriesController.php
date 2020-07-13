@@ -1,28 +1,38 @@
 <?php
 
-namespace App\Controller;
+namespace App\Controller\Admin\SuperAdmin;
 
 use App\Entity\Category;
-use App\Form\CategoryType;
 use App\Utils\CategoryTreeAdminList;
-use App\Utils\CategoryTreeAdminOptionList;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use App\Form\CategoryType;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 /**
  * @Route("/admin")
  */
-class AdminController extends AbstractController
+class CategoriesController extends AbstractController
 {
-    /**
-     * @Route("/", name="admin_main_page")
-     */
-    public function index()
+    private function saveCategory(Category $category, $form, Request $request)
     {
-        return $this->render('admin/my_profile.html.twig');
+        $form->handleRequest($request);
+        
+        if ($form->isSubmitted() && $form->isValid()) {
+            $category->setName($request->request->get('category')['name']);
+            $repository = $this->getDoctrine()->getRepository(Category::class);
+            $parent = $repository->find($request->request->get('category')['parent']);
+            $category->setParent($parent);
+            
+            $entityManager = $this->getDoctrine()->getManager();
+            $entityManager->persist($category);
+            $entityManager->flush();
+            
+            return true;
+        }
+        return false;
     }
-    
+
     /**
      * @Route("/su/categories", name="categories", methods={"GET", "POST"})
      */
@@ -46,7 +56,7 @@ class AdminController extends AbstractController
             'is_invalid' => $is_invalid
         ]);
     }
-    
+
     /**
      * @Route("/su/edit-category/{id}", name="edit_category", methods={"GET", "POST"})
      */
@@ -67,7 +77,7 @@ class AdminController extends AbstractController
             'is_invalid' => $is_invalid
         ]);
     }
-    
+        
     /**
      * @Route("/su/delete-category/{id}", name="delete_category")
      */
@@ -77,59 +87,5 @@ class AdminController extends AbstractController
         $entityManager->remove($category);
         $entityManager->flush();
         return $this->redirectToRoute('categories');
-    }
-    
-    /**
-     * @Route("/videos", name="videos")
-     */
-    public function videos()
-    {
-        return $this->render('admin/videos.html.twig');
-    }
-    
-    /**
-     * @Route("/su/upload-video", name="upload_video")
-     */
-    public function uploadVideo()
-    {
-        return $this->render('admin/upload_video.html.twig');
-    }
-    
-    /**
-     * @Route("/su/users", name="users")
-     */
-    public function users()
-    {
-        return $this->render('admin/users.html.twig');
-    }
-    
-    public function getAllCategories(CategoryTreeAdminOptionList $categories, Category $editedCategory = null)
-    {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
-        
-        $categories->getCategoryList($categories->buildTree());
-        return $this->render('admin\_all_categories.html.twig', [
-            'categories' => $categories,
-            'editedCategory' => $editedCategory
-        ]);
-    }
-    
-    private function saveCategory(Category $category, $form, Request $request)
-    {
-        $form->handleRequest($request);
-        
-        if ($form->isSubmitted() && $form->isValid()) {
-            $category->setName($request->request->get('category')['name']);
-            $repository = $this->getDoctrine()->getRepository(Category::class);
-            $parent = $repository->find($request->request->get('category')['parent']);
-            $category->setParent($parent);
-            
-            $entityManager = $this->getDoctrine()->getManager();
-            $entityManager->persist($category);
-            $entityManager->flush();
-            
-            return true;
-        }
-        return false;
     }
 }

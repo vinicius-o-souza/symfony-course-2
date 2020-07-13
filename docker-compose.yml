@@ -12,8 +12,8 @@ services:
         - .:/application
       environment:
         - MYSQL_ROOT_PASSWORD=root
-        - MYSQL_DATABASE=root
-        - MYSQL_USER=video-app
+        - MYSQL_DATABASE=video-app
+        - MYSQL_USER=root
         - MYSQL_PASSWORD=root
       ports:
         - "8082:3306"
